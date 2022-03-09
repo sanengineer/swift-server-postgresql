@@ -6,17 +6,6 @@ import Redis
 
 public func configure(_ app: Application) throws {
     
-    let port: Int
-    
-    guard let serverHostname = Environment.get("SERVER_HOSTNAME") else {
-        return print("No Env Server Hostname")
-    }
-    
-    if let envPort = Environment.get("SERVER_PORT") {
-        port = Int(envPort) ?? 8081
-    } else {
-        port = 8081
-    }
 
     if let dbUrlEnv = Environment.get("DATABASE_URL"), var postgresConfig = PostgresConfiguration(url: dbUrlEnv) {
         postgresConfig.tlsConfiguration = .makeClientConfiguration()
@@ -34,9 +23,25 @@ public func configure(_ app: Application) throws {
             as: .psql)
     }
     
+    let corsConfiguration = CORSMiddleware.Configuration(
+        allowedOrigin: .all,
+        allowedMethods: [.GET, .POST, .PUT, .OPTIONS, .DELETE, .PATCH],
+        allowedHeaders: [.accept, .authorization, .contentType, .origin, .xRequestedWith, .userAgent, .accessControlAllowOrigin]
+    )
+    let cors = CORSMiddleware(configuration: corsConfiguration)
+
+    // Only add this if you want to enable the default per-route logging
+    let routeLogging = RouteLoggingMiddleware(logLevel: .info)
+
+    // Add the default error middleware
+    let error = ErrorMiddleware.default(environment: app.environment)
+    // Clear any existing middleware.
+    app.middleware = .init()
+    app.middleware.use(cors)
+    app.middleware.use(routeLogging)
+    app.middleware.use(error)
+
     app.logger.logLevel = .debug
-    app.http.server.configuration.port = port
-    app.http.server.configuration.hostname = serverHostname
     
     app.migrations.add(CreateSchemaRoles())
     app.migrations.add(CreateSchemaUser())
