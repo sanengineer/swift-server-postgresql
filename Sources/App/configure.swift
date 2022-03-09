@@ -6,11 +6,7 @@ import Redis
 
 public func configure(_ app: Application) throws {
     
- let port: Int
-    let redisHostname: String
-    let redisPort: Int
-    let redisUrl: String
-    // let dbUrl: String
+    let port: Int
     
     guard let serverHostname = Environment.get("SERVER_HOSTNAME") else {
         return print("No Env Server Hostname")
@@ -21,31 +17,6 @@ public func configure(_ app: Application) throws {
     } else {
         port = 8081
     }
-    
-    if let redisEnvHostname = Environment.get("HOSTNAME_REDIS") {
-         redisHostname = redisEnvHostname
-    } else {
-        redisHostname = "localhost"
-    }
-    
-    
-    if let redisEnvPort = Environment.get("PORT_REDIS") {
-         redisPort = Int(redisEnvPort) ?? 6379
-    } else {
-        redisPort = 6379
-    }
-
-    if let redisUrlEnv = Environment.get("REDIS_TLS_URL"){
-        redisUrl = redisUrlEnv
-        app.redis.configuration = try RedisConfiguration(url: redisUrl)
-    } else {
-        // redisUrl = "http://\(redisHostname):\(redisPort)"
-        app.redis.configuration = try RedisConfiguration(hostname: redisHostname, port: redisPort)
-    }
-    
-  
-    // app.redis.configuration = try RedisConfiguration(hostname: redisHostname, port: redisPort)
-    // app.redis.configuration = try RedisConfiguration(url: redisUrl)
 
     if let dbUrlEnv = Environment.get("DATABASE_URL"), var postgresConfig = PostgresConfiguration(url: dbUrlEnv) {
         postgresConfig.tlsConfiguration = .makeClientConfiguration()
@@ -54,11 +25,6 @@ public func configure(_ app: Application) throws {
             configuration: postgresConfig
         ), as: .psql)
     } else {
-    // if let dbUrlEnv = Environment.get("DATABASE_URL"){
-    //     dbUrl = dbUrlEnv
-    //     try app.databases.use(.postgres(url: dbUrl), as: .psql)
-    //     print("DB_URL: \(dbUrl)")
-    // } else {
         app.databases.use(.postgres(
             hostname: Environment.get("DB_HOSTNAME")!,
             port: Environment.get("DB_PORT").flatMap(Int.init(_:))!,
